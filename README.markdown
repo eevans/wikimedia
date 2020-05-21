@@ -1,4 +1,4 @@
-[![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/eevans/wikimedia/blob/master/LICENSE.txt)
+[![eevans](https://circleci.com/gh/eevans/wikimedia.svg?style=svg)](https://app.circleci.com/pipelines/github/eevans/wikimedia) [![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/eevans/wikimedia/blob/master/LICENSE.txt)
 
 # Wikimedia SDK for Go
 
