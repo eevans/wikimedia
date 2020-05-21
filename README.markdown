@@ -10,9 +10,31 @@ Golang packages for working with Wikimedia services.
 The `streams` package provides high-level access to the [Wikimedia
 EventStreams service][1].
 
+### Quick start
+
+To install:
+
+```
+$ go get github.com/eevans/wikimedia/streams
+```
+
+To test:
+
+```
+$ make test
+```
+
 ### Example
 
 ```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/eevans/wikimedia/streams"
+)
+
 func main() {
     client := streams.NewClient()
     
