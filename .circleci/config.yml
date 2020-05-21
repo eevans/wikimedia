@@ -10,5 +10,5 @@ jobs:
       - checkout
       - run:
           command: |
-            go get github.com/golang/lint/golint
+            go get golang.org/x/lint/golint
       - run: make test
