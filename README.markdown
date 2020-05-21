@@ -16,7 +16,7 @@ EventStreams service][1].
 func main() {
     client := streams.NewClient()
     
-    client.RecentChanges(func(event RecentChangeEvent) {
+    client.RecentChanges(func(event streams.RecentChangeEvent) {
         fmt.Printf("Change event captured!\n")
         fmt.Printf("  Title .........: %s\n", event.Title)
         fmt.Printf("  Server name ...: %s\n", event.ServerName)
