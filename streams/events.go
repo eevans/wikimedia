@@ -20,6 +20,7 @@ type event struct {
 // https://github.com/wikimedia/mediawiki-event-schemas/blob/master/jsonschema/mediawiki/recentchange/1.0.0.yaml).
 type RecentChangeEvent struct {
 	ID        int    `json:"id"`
+	Meta      meta   `json:"meta"`
 	Type      string `json:"type"`
 	Namespace int    `json:"namespace"`
 	Title     string `json:"title"`
@@ -43,5 +44,4 @@ type RecentChangeEvent struct {
 	Wiki             string `json:"wiki"`
 	ParsedComment    string `json:"parsedcomment"`
 	event
-	meta
 }

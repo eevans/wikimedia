@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/r3labs/sse"
 )
@@ -16,13 +17,15 @@ const (
 
 // Client is used to subscribe to the Wikimedia EventStreams service
 type Client struct {
-	URL        string
-	Predicates map[string]interface{}
+	BaseURL       string
+	Predicates    map[string]interface{}
+	Since         string
+	lastTimestamp string
 }
 
 // NewClient returns an initialized Client
 func NewClient() *Client {
-	return &Client{DefaultURL, make(map[string]interface{})}
+	return &Client{BaseURL: DefaultURL, Predicates: make(map[string]interface{})}
 }
 
 // Match adds a new predicate.  Predicates are used to used to establish a match based on the JSON
@@ -32,12 +35,17 @@ func (client *Client) Match(attribute string, value interface{}) *Client {
 	return client
 }
 
+// LastTimestamp returns the ISO8601 formatted timestamp of the last event received.
+func (client *Client) LastTimestamp() string {
+	return client.lastTimestamp
+}
+
 // RecentChanges subscribes to the recent changes feed. The handler is invoked with a
 // RecentChangeEvent once for every matching event received.
-func (client *Client) RecentChanges(handler func(evt RecentChangeEvent)) {
-	sseClient := sse.NewClient(fmt.Sprintf("%s/recentchange", DefaultURL))
+func (client *Client) RecentChanges(handler func(evt RecentChangeEvent)) error {
+	sseClient := sse.NewClient(client.url("recentchange"))
 
-	sseClient.Subscribe("message", func(msg *sse.Event) {
+	return sseClient.Subscribe("", func(msg *sse.Event) {
 		// This actually happens; The first event that fires is always empty
 		if len(msg.Data) == 0 {
 			return
@@ -48,6 +56,8 @@ func (client *Client) RecentChanges(handler func(evt RecentChangeEvent)) {
 			log.Printf("Error deserializing JSON event: %s\n", err)
 			return
 		}
+
+		client.lastTimestamp = evt.Meta.Dt
 
 		if matching(reflect.ValueOf(evt), client.Predicates) {
 			handler(evt)
@@ -82,4 +92,13 @@ func matching(v reflect.Value, p map[string]interface{}) bool {
 	}
 
 	return false
+}
+
+func (client *Client) url(stream string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s/%s", client.BaseURL, stream)
+	if client.Since != "" {
+		fmt.Fprintf(&b, "?since=%s", client.Since)
+	}
+	return b.String()
 }
