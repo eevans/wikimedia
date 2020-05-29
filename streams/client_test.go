@@ -82,7 +82,7 @@ func TestRecentChanges(t *testing.T) {
 	setup()
 	defer cleanup()
 
-	client := &Client{url, map[string]interface{}{"namespace": 0}}
+	client := &Client{BaseURL: url, Predicates: map[string]interface{}{"namespace": 0}}
 	events := make(chan RecentChangeEvent)
 
 	go func() {
