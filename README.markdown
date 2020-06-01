@@ -64,6 +64,7 @@ func main() {
 
 * Only the `recentchange` stream is currently supported
 * Test coverage is very poor
+* Test connects to production Event Streams service
 
 
 [1]: https://wikitech.wikimedia.org/wiki/Event_Platform/EventStreams

@@ -45,7 +45,7 @@ func (client *Client) LastTimestamp() string {
 func (client *Client) RecentChanges(handler func(evt RecentChangeEvent)) error {
 	sseClient := sse.NewClient(client.url("recentchange"))
 
-	return sseClient.Subscribe("", func(msg *sse.Event) {
+	return sseClient.Subscribe("message", func(msg *sse.Event) {
 		// This actually happens; The first event that fires is always empty
 		if len(msg.Data) == 0 {
 			return
