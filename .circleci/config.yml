@@ -11,5 +11,4 @@ jobs:
       - run:
           command: |
             go get golang.org/x/lint/golint
-            go get ./streams/...
       - run: make test
