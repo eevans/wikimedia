@@ -1,6 +1,5 @@
 
 test: verify
-	go get  ./streams/...
 	go test ./streams/...
 
 verify:
