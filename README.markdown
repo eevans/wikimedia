@@ -54,8 +54,8 @@ set of predicates.
 ```go
 func main() {
     // Only produce events where the namespace attribute is 0, and wiki is enwiki
-    client := streams.NewClient().Match("namespace": 0).Match("wiki": "enwiki")
-    
+    client := streams.NewClient().Match("namespace", 0).Match("wiki", "enwiki")
+
     // ...
 }
 ```
