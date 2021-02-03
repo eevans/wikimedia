@@ -6,13 +6,23 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/jpillora/backoff"
 	"github.com/r3labs/sse"
 )
 
 const (
 	// DefaultURL is the URL of the Wikimedia EventStreams service (sans any stream endpoints)
 	DefaultURL string = "https://stream.wikimedia.org/v2/stream"
+
+	// Wikimedia's traffic layer will disconnect clients after 15 minutes (see: https://phabricator.wikimedia.org/T242767).
+	// This manifests as an http.http2StreamError (https://golang.org/pkg/net/http/?m=all#http2StreamError) returned by
+	// sse.Client#Subscribe (code http2ErrCodeNo), (and this error is NOT handled by sse's ReconnectStrategy).  To work
+	// around this, errors that are spaced at least `resetInterval` apart will be tried `retries` times with an
+	// exponential back-off.
+	resetInterval = time.Minute * 10
+	retries       = 3
 )
 
 // Client is used to subscribe to the Wikimedia EventStreams service
@@ -43,26 +53,56 @@ func (client *Client) LastTimestamp() string {
 // RecentChanges subscribes to the recent changes feed. The handler is invoked with a
 // RecentChangeEvent once for every matching event received.
 func (client *Client) RecentChanges(handler func(evt RecentChangeEvent)) error {
-	sseClient := sse.NewClient(client.url("recentchange"))
+	var bOff = &backoff.Backoff{}
+	var err error
+	var events *sse.Client
+	var lastSub time.Time
 
-	return sseClient.Subscribe("message", func(msg *sse.Event) {
-		// This actually happens; The first event that fires is always empty
-		if len(msg.Data) == 0 {
-			return
+	for {
+		// Reconnect on each iteration; Client#url will include a `since` param with the
+		// timestamp of the last observed event from any previous iterations.
+		events = sse.NewClient(client.url("recentchange"))
+		lastSub = time.Now()
+
+		err = events.Subscribe("message", func(msg *sse.Event) {
+			// This actually happens; The first event that fires is always empty
+			if len(msg.Data) == 0 {
+				return
+			}
+
+			evt := RecentChangeEvent{}
+			if err := json.Unmarshal(msg.Data, &evt); err != nil {
+				log.Printf("Error deserializing JSON event: %s\n", err)
+				return
+			}
+
+			client.lastTimestamp = evt.Meta.Dt
+
+			if matching(reflect.ValueOf(evt), client.Predicates) {
+				handler(evt)
+			}
+		})
+
+		if err == nil {
+			return err
 		}
 
-		evt := RecentChangeEvent{}
-		if err := json.Unmarshal(msg.Data, &evt); err != nil {
-			log.Printf("Error deserializing JSON event: %s\n", err)
-			return
+		// If we've been running for resetInterval or longer, we'll treat this as a new set of retries
+		if time.Now().Sub(lastSub) >= resetInterval {
+			bOff.Reset()
 		}
 
-		client.lastTimestamp = evt.Meta.Dt
+		// Backoff
+		time.Sleep(bOff.Duration())
 
-		if matching(reflect.ValueOf(evt), client.Predicates) {
-			handler(evt)
+		// Bail-out if reaching the limit on retries
+		if bOff.Attempt() >= retries {
+			return err
 		}
-	})
+
+		// Start the next iteration where we last left off.
+		client.Since = client.lastTimestamp
+	}
 }
 
 // Given the reflect.Value for a JSON annotated event struct, and a predicate map, returns true if all predicates match.
